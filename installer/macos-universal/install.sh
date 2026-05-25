@@ -4,7 +4,7 @@
 # =============================================================================
 #
 # Supports:
-#   - Installing v.1.0.0 (current release)
+#   - Installing v.1.0.1 (current release)
 #   - Detecting an already-installed version
 #   - Upgrading and uninstalling
 #
@@ -23,13 +23,14 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_NAME="ws_pluginmgr.so"
-CURRENT_VERSION="1.0.0"
+CURRENT_VERSION="1.0.1"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+GRAY='\033[0;90m'
 BOLD='\033[1m'
 NC='\033[0m'
 
@@ -37,7 +38,7 @@ printf "\n"
 printf "${BLUE}╔══════════════════════════════════════════════════╗${NC}\n"
 printf "${BLUE}║   WS-PluginManager Installer for macOS           ║${NC}\n"
 printf "${BLUE}║   Universal Binary (Intel + Apple Silicon)       ║${NC}\n"
-printf "${BLUE}║   v.1.0.0  —  requires Wireshark 4.6.x           ║${NC}\n"
+printf "${BLUE}║   v.1.0.1  —  requires Wireshark 4.6.x           ║${NC}\n"
 printf "${BLUE}╚══════════════════════════════════════════════════╝${NC}\n"
 printf "\n"
 
@@ -114,30 +115,41 @@ SYSTEM_PLUGIN_DIR=""
     SYSTEM_PLUGIN_DIR="$WIRESHARK_APP/Contents/PlugIns/wireshark/$PLUGIN_PATH_ID/epan"
 
 # --- Detect currently installed version ---
+printf "\n  Checking for existing WS-PluginManager installation:\n"
 INSTALLED_VERSION=""
 INSTALLED_PATH=""
 for dir in "$PERSONAL_PLUGIN_DIR" "$SYSTEM_PLUGIN_DIR"; do
     [ -n "$dir" ] || continue
-    [ -f "$dir/$PLUGIN_NAME" ] || continue
-    INSTALLED_VERSION=$(strings "$dir/$PLUGIN_NAME" 2>/dev/null \
-        | grep -oE 'ws_pluginmgr [0-9]+\.[0-9]+\.[0-9]+' | head -1 \
-        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-    [ -z "$INSTALLED_VERSION" ] && INSTALLED_VERSION="unknown"
-    INSTALLED_PATH="$dir/$PLUGIN_NAME"
-    break
+    if [ -f "$dir/$PLUGIN_NAME" ]; then
+        INSTALLED_VERSION=$(strings "$dir/$PLUGIN_NAME" 2>/dev/null \
+            | grep -oE 'ws_pluginmgr [0-9]+\.[0-9]+\.[0-9]+' | head -1 \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+        [ -z "$INSTALLED_VERSION" ] && INSTALLED_VERSION="unknown"
+        INSTALLED_PATH="$dir/$PLUGIN_NAME"
+        printf "    ${GREEN}[FOUND]${NC}   v.%s\n" "$INSTALLED_VERSION"
+        printf "              %s\n" "$INSTALLED_PATH"
+        break
+    else
+        printf "    ${GRAY}[none]${NC}    %s\n" "$dir/$PLUGIN_NAME"
+    fi
 done
 
-if [ -n "$INSTALLED_PATH" ]; then
-    printf "${GREEN}✓${NC} Currently installed: ${CYAN}v.%s${NC}\n" "$INSTALLED_VERSION"
-    printf "  Location: %s\n" "$INSTALLED_PATH"
-else
-    printf "  No existing installation found.\n"
+if [ -z "$INSTALLED_PATH" ]; then
+    printf "    No existing installation found.\n"
 fi
 
 # --- Main menu ---
 printf "\n"
 printf "What would you like to do?\n\n"
-printf "  ${GREEN}i${NC}) Install / upgrade\n"
+if [ -n "$INSTALLED_PATH" ]; then
+    if [ "$INSTALLED_VERSION" = "$CURRENT_VERSION" ]; then
+        printf "  ${GREEN}i${NC}) Reinstall v.%s\n" "$CURRENT_VERSION"
+    else
+        printf "  ${GREEN}i${NC}) Upgrade to v.%s  (installed: v.%s)\n" "$CURRENT_VERSION" "$INSTALLED_VERSION"
+    fi
+else
+    printf "  ${GREEN}i${NC}) Install v.%s\n" "$CURRENT_VERSION"
+fi
 printf "  ${RED}u${NC}) Uninstall\n"
 printf "  ${YELLOW}q${NC}) Quit\n\n"
 printf "Choice [i]: "

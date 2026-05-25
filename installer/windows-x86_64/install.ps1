@@ -3,7 +3,7 @@
 # =============================================================================
 #
 # Supports:
-#   - Installing v.1.0.0 (current release)
+#   - Installing v.1.0.1 (current release)
 #   - Detecting an already-installed version
 #   - Upgrading and uninstalling
 #
@@ -22,13 +22,13 @@ $ErrorActionPreference = "Stop"
 
 $ScriptDir      = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PluginName     = "ws_pluginmgr.dll"
-$CurrentVersion = "1.0.0"
+$CurrentVersion = "1.0.1"
 
 Write-Host ""
 Write-Host "===========================================================" -ForegroundColor Cyan
 Write-Host "      WS-PluginManager Installer for Windows               " -ForegroundColor Cyan
 Write-Host "      x86_64 (64-bit Intel/AMD)                            " -ForegroundColor Cyan
-Write-Host "      v.1.0.0  --  requires Wireshark 4.6.x               " -ForegroundColor Cyan
+Write-Host "      v.1.0.1  --  requires Wireshark 4.6.x               " -ForegroundColor Cyan
 Write-Host "===========================================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -244,7 +244,7 @@ if ($vcFound) { Write-Host "OK ($vcVersion)" -ForegroundColor Green } else { Wri
 Write-Host "  Wireshark       : " -NoNewline
 if ($WiresharkPath) { Write-Host "Found at $WiresharkPath" -ForegroundColor Green } else { Write-Host "Not found in standard locations" -ForegroundColor Yellow }
 Write-Host "  Wireshark ver   : " -NoNewline; Write-Host "$WsVersion  (plugin API: $PluginPathId)" -ForegroundColor Cyan
-Write-Host "  v.1.0.0 binary  : " -NoNewline
+Write-Host "  v.1.0.1 binary  : " -NoNewline
 if ($binaryOk) { Write-Host "present" -ForegroundColor Green } else { Write-Host "not available" -ForegroundColor Yellow }
 Write-Host "  Installed now   : " -NoNewline
 if ($InstalledVersion) { Write-Host "v.$InstalledVersion  at $InstalledPath" -ForegroundColor Cyan } else { Write-Host "None" -ForegroundColor DarkGray }
@@ -254,9 +254,17 @@ Write-Host "-----------------------------------------------------------" -Foregr
 Write-Host ""
 Write-Host "What would you like to do?"
 Write-Host ""
-Write-Host "  i) Install / upgrade" -ForegroundColor Green
-Write-Host "  u) Uninstall"         -ForegroundColor Red
-Write-Host "  q) Quit"              -ForegroundColor Yellow
+if ($InstalledPath) {
+    if ($InstalledVersion -eq $CurrentVersion) {
+        Write-Host "  i) Reinstall v.$CurrentVersion" -ForegroundColor Green
+    } else {
+        Write-Host "  i) Upgrade to v.$CurrentVersion  (installed: v.$InstalledVersion)" -ForegroundColor Green
+    }
+} else {
+    Write-Host "  i) Install v.$CurrentVersion" -ForegroundColor Green
+}
+Write-Host "  u) Uninstall" -ForegroundColor Red
+Write-Host "  q) Quit"      -ForegroundColor Yellow
 Write-Host ""
 $action = Read-Host "Choice [i]"
 if (-not $action) { $action = "i" }

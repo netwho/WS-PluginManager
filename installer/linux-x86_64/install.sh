@@ -4,16 +4,16 @@
 # =============================================================================
 #
 # Supports:
-#   - Installing v.1.0.0 (current release)
+#   - Installing v.1.0.1 (current release)
 #   - Auto-detecting Wireshark version (4.0.x, 4.2.x, 4.4.x, 4.6.x)
 #   - Detecting an already-installed version
 #   - Upgrading and uninstalling
 #
 # Binaries (next to this script):
-#   v.1.0.0/ws_pluginmgr-ws40.so   Wireshark 4.0.x
-#   v.1.0.0/ws_pluginmgr-ws42.so   Wireshark 4.2.x
-#   v.1.0.0/ws_pluginmgr-ws44.so   Wireshark 4.4.x
-#   v.1.0.0/ws_pluginmgr-ws46.so   Wireshark 4.6.x
+#   v.1.0.1/ws_pluginmgr-ws40.so   Wireshark 4.0.x
+#   v.1.0.1/ws_pluginmgr-ws42.so   Wireshark 4.2.x
+#   v.1.0.1/ws_pluginmgr-ws44.so   Wireshark 4.4.x
+#   v.1.0.1/ws_pluginmgr-ws46.so   Wireshark 4.6.x
 #
 # Usage:
 #   chmod +x install.sh && ./install.sh
@@ -23,7 +23,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PLUGIN_NAME="ws_pluginmgr.so"
-CURRENT_VERSION="1.0.0"
+CURRENT_VERSION="1.0.1"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -208,18 +208,30 @@ fi
 INSTALL_DIR="$HOME/.local/lib/wireshark/plugins/$PLUGIN_PATH_ID/epan"
 
 # --- Detect currently installed ---
-printf "\n  Checking for existing installation:\n"
+printf "\n  Checking for existing WS-PluginManager installation:\n"
 INSTALLED_PATH=""
 INSTALLED_VERSION=""
-if [ -f "$INSTALL_DIR/$PLUGIN_NAME" ]; then
-    INSTALLED_VERSION=$(strings "$INSTALL_DIR/$PLUGIN_NAME" 2>/dev/null \
-        | grep -oE 'ws_pluginmgr [0-9]+\.[0-9]+\.[0-9]+' | head -1 \
-        | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-    [ -z "$INSTALLED_VERSION" ] && INSTALLED_VERSION="unknown"
-    INSTALLED_PATH="$INSTALL_DIR/$PLUGIN_NAME"
-    printf "    ${GREEN}[FOUND]${NC}   v.%s at %s\n" "$INSTALLED_VERSION" "$INSTALLED_PATH"
-else
-    printf "    ${GRAY}[none]${NC}    %s  (not installed)\n" "$INSTALL_DIR/$PLUGIN_NAME"
+for search_dir in \
+    "$INSTALL_DIR" \
+    "/usr/lib/x86_64-linux-gnu/wireshark/plugins/$PLUGIN_PATH_ID/epan" \
+    "/usr/lib64/wireshark/plugins/$PLUGIN_PATH_ID/epan" \
+    "/usr/lib/wireshark/plugins/$PLUGIN_PATH_ID/epan"; do
+    [ -n "$search_dir" ] || continue
+    if [ -f "$search_dir/$PLUGIN_NAME" ]; then
+        INSTALLED_VERSION=$(strings "$search_dir/$PLUGIN_NAME" 2>/dev/null \
+            | grep -oE 'ws_pluginmgr [0-9]+\.[0-9]+\.[0-9]+' | head -1 \
+            | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+        [ -z "$INSTALLED_VERSION" ] && INSTALLED_VERSION="unknown"
+        INSTALLED_PATH="$search_dir/$PLUGIN_NAME"
+        printf "    ${GREEN}[FOUND]${NC}   v.%s\n" "$INSTALLED_VERSION"
+        printf "              %s\n" "$INSTALLED_PATH"
+        break
+    else
+        printf "    ${GRAY}[none]${NC}    %s\n" "$search_dir/$PLUGIN_NAME"
+    fi
+done
+if [ -z "$INSTALLED_PATH" ]; then
+    printf "    No existing installation found.\n"
 fi
 
 # --- Qt6 check ---
@@ -259,7 +271,15 @@ read -r _PAUSE
 
 # --- Main menu ---
 printf "\nWhat would you like to do?\n\n"
-printf "  ${GREEN}i${NC}) Install / upgrade\n"
+if [ -n "$INSTALLED_PATH" ]; then
+    if [ "$INSTALLED_VERSION" = "$CURRENT_VERSION" ]; then
+        printf "  ${GREEN}i${NC}) Reinstall v.%s\n" "$CURRENT_VERSION"
+    else
+        printf "  ${GREEN}i${NC}) Upgrade to v.%s  (installed: v.%s)\n" "$CURRENT_VERSION" "$INSTALLED_VERSION"
+    fi
+else
+    printf "  ${GREEN}i${NC}) Install v.%s\n" "$CURRENT_VERSION"
+fi
 printf "  ${RED}u${NC}) Uninstall\n"
 printf "  ${YELLOW}q${NC}) Quit\n\n"
 printf "Choice [i]: "
