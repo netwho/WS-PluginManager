@@ -21,6 +21,8 @@
 #include <QFrame>
 #include <QMenu>
 #include <QAction>
+#include <QProcess>
+#include <QCoreApplication>
 
 enum Column {
     COL_NAME    = 0,
@@ -90,21 +92,45 @@ PluginDialog::PluginDialog(QWidget *parent)
     profileBar->addWidget(m_saveProfileBtn);
     profileBar->addWidget(m_deleteProfileBtn);
 
-    /* ---- Restart banner (hidden until a C plugin is toggled) ---- */
+    /* ---- Restart banner (C plugins — hidden until toggled) ---- */
     m_restartBanner = new QWidget(this);
-    m_restartBanner->setStyleSheet(
-        "background-color: #fff3cd;"
-        "border: 1px solid #856404;"
-        "border-radius: 4px;"
-        "padding: 2px;"
-    );
-    QHBoxLayout *bannerLayout = new QHBoxLayout(m_restartBanner);
-    bannerLayout->setContentsMargins(8, 4, 8, 4);
-    QLabel *bannerText = new QLabel(
-        "⚠️  One or more C plugins changed — restart Wireshark to apply.",
-        m_restartBanner);
-    bannerLayout->addWidget(bannerText);
+    m_restartBanner->setObjectName("restartBanner");
+    {
+        QHBoxLayout *bl = new QHBoxLayout(m_restartBanner);
+        bl->setContentsMargins(8, 4, 8, 4);
+        QLabel *txt = new QLabel(
+            "⚠️  One or more C plugins changed — restart Wireshark to apply.",
+            m_restartBanner);
+        bl->addWidget(txt, 1);
+        QPushButton *restartBtn = new QPushButton("Restart Now", m_restartBanner);
+        QPushButton *laterBtn   = new QPushButton("Later",       m_restartBanner);
+        bl->addWidget(restartBtn);
+        bl->addWidget(laterBtn);
+        connect(restartBtn, &QPushButton::clicked,
+                this, &PluginDialog::onRestartClicked);
+        connect(laterBtn, &QPushButton::clicked,
+                [this]{ m_restartBanner->setVisible(false); });
+    }
     m_restartBanner->hide();
+
+    /* ---- Lua reload banner (hidden until a Lua plugin is toggled) ---- */
+    m_luaBanner = new QWidget(this);
+    m_luaBanner->setObjectName("luaBanner");
+    {
+        QHBoxLayout *bl = new QHBoxLayout(m_luaBanner);
+        bl->setContentsMargins(8, 4, 8, 4);
+        QLabel *txt = new QLabel(
+            "✓  Lua plugin reloaded — changes are active immediately.",
+            m_luaBanner);
+        bl->addWidget(txt, 1);
+        QPushButton *okBtn = new QPushButton("OK", m_luaBanner);
+        bl->addWidget(okBtn);
+        connect(okBtn, &QPushButton::clicked,
+                [this]{ m_luaBanner->setVisible(false); });
+    }
+    m_luaBanner->hide();
+
+    updateBannerStyle();
 
     /* ---- Plugin tree ---- */
     m_tree = new QTreeWidget(this);
@@ -128,6 +154,7 @@ PluginDialog::PluginDialog(QWidget *parent)
     mainLayout->addWidget(separator);
     mainLayout->addLayout(profileBar);
     mainLayout->addWidget(m_restartBanner);
+    mainLayout->addWidget(m_luaBanner);
     mainLayout->addWidget(m_tree, 1);
 
     /* ---- Connections ---- */
@@ -303,6 +330,8 @@ void PluginDialog::onItemChanged(QTreeWidgetItem *item, int column)
 
     if (entry->lang == PLUGIN_LANG_C)
         showRestartBanner(true);
+    else if (entry->lang == PLUGIN_LANG_LUA)
+        m_luaBanner->setVisible(true);
 }
 
 void PluginDialog::onSelectionChanged()
@@ -511,6 +540,52 @@ void PluginDialog::applySearchFilter(const QString &text)
 void PluginDialog::showRestartBanner(bool show)
 {
     m_restartBanner->setVisible(show);
+}
+
+/* Apply palette-aware colours to both banners.
+ * Called at construction and whenever Qt fires a PaletteChange event
+ * (e.g. the user switches between Light and Dark mode at the OS level). */
+void PluginDialog::updateBannerStyle()
+{
+    const bool dark = palette().window().color().lightness() < 128;
+
+    /* C restart banner — amber/warning */
+    m_restartBanner->setStyleSheet(dark
+        ? "QWidget#restartBanner { background-color: #3d2800;"
+          " border: 1px solid #cc8800; border-radius: 4px; }"
+          "QWidget#restartBanner QLabel { color: #ffd966;"
+          " background: transparent; border: none; }"
+        : "QWidget#restartBanner { background-color: #fff3cd;"
+          " border: 1px solid #856404; border-radius: 4px; }"
+          "QWidget#restartBanner QLabel { color: #5c4800;"
+          " background: transparent; border: none; }");
+
+    /* Lua reload banner — green/info */
+    m_luaBanner->setStyleSheet(dark
+        ? "QWidget#luaBanner { background-color: #0b2e18;"
+          " border: 1px solid #2da05e; border-radius: 4px; }"
+          "QWidget#luaBanner QLabel { color: #7dde96;"
+          " background: transparent; border: none; }"
+        : "QWidget#luaBanner { background-color: #d4edda;"
+          " border: 1px solid #28a745; border-radius: 4px; }"
+          "QWidget#luaBanner QLabel { color: #155724;"
+          " background: transparent; border: none; }");
+}
+
+void PluginDialog::changeEvent(QEvent *e)
+{
+    if (e->type() == QEvent::PaletteChange)
+        updateBannerStyle();
+    QDialog::changeEvent(e);
+}
+
+/* Spawn a fresh Wireshark instance then exit the current one.
+ * Used by the "Restart Now" button on the C-plugin banner. */
+void PluginDialog::onRestartClicked()
+{
+    close();
+    QProcess::startDetached(QCoreApplication::applicationFilePath(), {});
+    QCoreApplication::instance()->quit();
 }
 
 plugin_entry_t *PluginDialog::entryFromItem(QTreeWidgetItem *item) const

@@ -31,6 +31,14 @@ static void pin_dso(void)
 
 #define WS_LOG_DOMAIN "ws_pluginmgr"
 
+/*
+ * Version identification tag — searched by the installer's
+ *   strings <plugin.so> | grep "ws_pluginmgr [0-9]"
+ * to detect which version is currently installed.
+ * Keep in sync with set_module_info() in CMakeLists.txt.
+ */
+const char ws_pluginmgr_version_tag[] = "ws_pluginmgr 1.0.1";
+
 static int proto_pluginmgr = -1;
 static ext_menu_t *pluginmgr_menu = NULL;
 

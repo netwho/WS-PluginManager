@@ -16,6 +16,7 @@
 #include <QLabel>
 #include <QWidget>
 #include <QComboBox>
+#include <QEvent>
 
 extern "C" {
 #include "plugin_scanner.h"
@@ -44,12 +45,17 @@ private slots:
     void onSaveProfileClicked();
     void onDeleteProfileClicked();
     void onContextMenuRequested(const QPoint &pos);
+    void onRestartClicked();
+
+protected:
+    void changeEvent(QEvent *e) override;
 
 private:
     void buildTree(GPtrArray *plugins);
     QTreeWidgetItem *addPluginItem(QTreeWidgetItem *parent, plugin_entry_t *entry);
     void applySearchFilter(const QString &text);
     void showRestartBanner(bool show);
+    void updateBannerStyle();
     void refreshProfiles();
     plugin_entry_t *entryFromItem(QTreeWidgetItem *item) const;
 
@@ -59,6 +65,7 @@ private:
     QPushButton *m_deleteBtn;
     QPushButton *m_openDirBtn;
     QWidget     *m_restartBanner;
+    QWidget     *m_luaBanner;
 
     /* Profile bar */
     QComboBox   *m_profileCombo;
