@@ -1,7 +1,7 @@
 # WS-PluginManager
 
 <p align="center">
-  <img src="WS-PluginManager.png" alt="WS-PluginManager Logo" width="128">
+  <img src="WS-PluginManager.png" alt="WS-PluginManager Logo" width="256">
 </p>
 
 [![Version](https://img.shields.io/badge/version-1.0.1-blue.svg)](CHANGELOG.md)
