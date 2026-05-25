@@ -14,7 +14,7 @@
 #   System:    C:\Program Files\Wireshark\plugins\<version>\epan\
 #
 # Usage:
-#   Run install.bat   (recommended — keeps the window open)
+#   Run install.bat   (recommended -- keeps the window open)
 #   or: .\install.ps1
 # =============================================================================
 
@@ -165,7 +165,7 @@ $WsMinor = $WsVersion.Split('.')[1]
 if ($WsMajor -ne "4" -or $WsMinor -ne "6") {
     Write-Host ""
     Write-Host "  [WARN] This binary was built against Wireshark 4.6.x." -ForegroundColor Yellow
-    Write-Host "         Your version: $WsVersion — the plugin may fail to load." -ForegroundColor Yellow
+    Write-Host "         Your version: $WsVersion -- the plugin may fail to load." -ForegroundColor Yellow
     $force = Read-Host "  Install anyway? [y/N]"
     if ($force -ne "y" -and $force -ne "Y") {
         Write-Host "Installation cancelled."
@@ -186,7 +186,7 @@ $searchBases = @(
 foreach ($base in $searchBases) {
     if (Test-Path $base) {
         foreach ($d in (Get-ChildItem $base -Directory -ErrorAction SilentlyContinue)) {
-            $match = $d.Name -match "^$WsMajor[\.\-]$WsMinor$"
+            $match = $d.Name -match "^$($WsMajor)[\.\-]$($WsMinor)$"
             $color = if ($match) { "Green" } else { "DarkGray" }
             Write-Host "    $base\$($d.Name)  $(if ($match) {'[MATCH]'} else {''})" -ForegroundColor $color
             if ($match -and -not $foundPathId) { $foundPathId = $d.Name }
@@ -194,7 +194,7 @@ foreach ($base in $searchBases) {
     }
 }
 
-$PluginPathId = if ($foundPathId) { $foundPathId } else { "$WsMajor.$WsMinor" }
+$PluginPathId = if ($foundPathId) { $foundPathId } else { "$($WsMajor).$($WsMinor)" }
 if ($foundPathId) {
     Write-Host "    => Using plugin path ID: " -NoNewline; Write-Host $PluginPathId -ForegroundColor Cyan
 } else {
@@ -214,7 +214,7 @@ $InstalledPath    = $null
 foreach ($dir in (@($PersonalPluginDir, "$env:LOCALAPPDATA\Wireshark\plugins\$PluginPathId\epan", $SystemPluginDir) | Where-Object { $_ })) {
     $candidate = "$dir\$PluginName"
     if (Test-Path $candidate) {
-        Write-Host "    $candidate : " -NoNewline; Write-Host "[FOUND]" -ForegroundColor Green
+        Write-Host "    $($candidate) : " -NoNewline; Write-Host "[FOUND]" -ForegroundColor Green
         $InstalledPath = $candidate
         try {
             $bytes = [System.IO.File]::ReadAllBytes($InstalledPath)
@@ -226,7 +226,7 @@ foreach ($dir in (@($PersonalPluginDir, "$env:LOCALAPPDATA\Wireshark\plugins\$Pl
         } catch {}
         break
     } else {
-        Write-Host "    $candidate : " -NoNewline; Write-Host "[not found]" -ForegroundColor DarkGray
+        Write-Host "    $($candidate) : " -NoNewline; Write-Host "[not found]" -ForegroundColor DarkGray
     }
 }
 if (-not $InstalledPath) {
@@ -294,7 +294,7 @@ switch ($action.ToLower()) {
 Write-Host ""
 Write-Host "Where would you like to install?"
 Write-Host ""
-Write-Host "  1) Personal directory (recommended — survives Wireshark updates)" -ForegroundColor Green
+Write-Host "  1) Personal directory (recommended -- survives Wireshark updates)" -ForegroundColor Green
 Write-Host "     $PersonalPluginDir" -ForegroundColor Gray
 if ($SystemPluginDir) {
     Write-Host ""
@@ -325,7 +325,7 @@ if (Test-Path "$InstallDir\$PluginName") {
     Write-Host ""
     Write-Host "  Next steps:"
     Write-Host "  1. Restart Wireshark (if running)"
-    Write-Host "  2. Open Tools menu — Plugin Manager appears at the bottom"
+    Write-Host "  2. Open Tools menu -- Plugin Manager appears at the bottom"
     Write-Host "  3. Click 'Manage Plugins...' to open the plugin browser"
     Write-Host ""
 
